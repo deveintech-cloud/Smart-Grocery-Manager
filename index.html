@@ -1,0 +1,3066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Grocery Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary: #2E7D32;
+            --primary-light: #E8F5E9;
+            --primary-dark: #1B5E20;
+            --secondary: #FF6F00;
+            --secondary-light: #FFF3E0;
+            --danger: #D32F2F;
+            --danger-light: #FFEBEE;
+            --warning: #FFA000;
+            --warning-light: #FFF8E1;
+            --text: #212121;
+            --text-light: #757575;
+            --background: #F5F5F5;
+            --surface: #FFFFFF;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
+            --radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            /* Background image related to groceries */
+            background-image: url('https://images.unsplash.com/photo-1542838132-92c53300491e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2000&q=80');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-blend-mode: overlay;
+            background-color: rgba(245, 245, 245, 0.9);
+        }
+
+        .app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            background-color: var(--surface);
+            min-height: 100vh;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Authentication Screens */
+        .auth-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .auth-form {
+            background-color: white;
+            padding: 40px 30px;
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 400px;
+            box-shadow: var(--shadow);
+            color: var(--text);
+        }
+
+        .auth-form h2 {
+            margin-bottom: 24px;
+            text-align: center;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 24px;
+        }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        .auth-switch a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .auth-switch a:hover {
+            color: var(--primary-dark);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: var(--radius);
+            font-size: 16px;
+            transition: var(--transition);
+            background-color: var(--surface);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+        }
+
+        .btn {
+            padding: 14px 24px;
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            width: 100%;
+            font-size: 16px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #E65100;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 111, 0, 0.3);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--primary-light);
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #B71C1C;
+            transform: translateY(-1px);
+        }
+
+        /* Error Message */
+        .error-message {
+            color: var(--danger);
+            font-size: 14px;
+            margin-top: 8px;
+            text-align: center;
+            display: none;
+            padding: 8px 12px;
+            background-color: var(--danger-light);
+            border-radius: 8px;
+            border-left: 4px solid var(--danger);
+        }
+
+        /* Success Message */
+        .success-message {
+            color: var(--primary);
+            font-size: 14px;
+            margin-top: 8px;
+            text-align: center;
+            display: none;
+            padding: 8px 12px;
+            background-color: var(--primary-light);
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+        }
+
+        /* Loading Spinner */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Header Styles */
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo i {
+            font-size: 28px;
+        }
+
+        .logo h1 {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .header-actions i {
+            font-size: 22px;
+            cursor: pointer;
+            transition: var(--transition);
+            padding: 8px;
+            border-radius: 50%;
+        }
+
+        .header-actions i:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        /* Navigation */
+        .nav-tabs {
+            display: flex;
+            background-color: var(--surface);
+            border-bottom: 1px solid #e0e0e0;
+            position: sticky;
+            top: 72px;
+            z-index: 99;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-tab {
+            flex: 1;
+            text-align: center;
+            padding: 18px 0;
+            font-weight: 500;
+            color: var(--text-light);
+            border-bottom: 3px solid transparent;
+            transition: var(--transition);
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .nav-tab.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .nav-tab:hover {
+            color: var(--primary);
+            background-color: var(--primary-light);
+        }
+
+        /* Main Content */
+        .content {
+            padding: 24px;
+            padding-bottom: 90px;
+        }
+
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text);
+        }
+
+        .section-title a {
+            color: var(--primary);
+            font-size: 14px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .section-title a:hover {
+            color: var(--primary-dark);
+        }
+
+        /* Dashboard Cards */
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .dashboard-card {
+            background-color: var(--surface);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: var(--transition);
+            border: 1px solid #f0f0f0;
+            cursor: pointer;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .dashboard-card i {
+            font-size: 32px;
+            margin-bottom: 12px;
+            color: var(--primary);
+        }
+
+        .dashboard-card .count {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .dashboard-card .label {
+            font-size: 14px;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+
+        /* Inventory Items */
+        .inventory-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .inventory-item {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            background-color: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            border: 1px solid #f0f0f0;
+        }
+
+        .inventory-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .item-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            font-size: 20px;
+        }
+
+        .item-icon.fruit {
+            background-color: #FFF3E0;
+            color: var(--secondary);
+        }
+
+        .item-icon.dairy {
+            background-color: #E3F2FD;
+            color: #1976D2;
+        }
+
+        .item-icon.vegetable {
+            background-color: #E8F5E9;
+            color: var(--primary);
+        }
+
+        .item-icon.meat {
+            background-color: #FFEBEE;
+            color: var(--danger);
+        }
+
+        .item-icon.grains {
+            background-color: #F3E5F5;
+            color: #7B1FA2;
+        }
+
+        .item-icon.other {
+            background-color: #F5F5F5;
+            color: var(--text-light);
+        }
+
+        .item-details {
+            flex: 1;
+        }
+
+        .item-name {
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text);
+            font-size: 16px;
+        }
+
+        .item-expiry {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .expiry-soon {
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .expiry-today {
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        .item-quantity {
+            font-weight: 600;
+            margin-right: 16px;
+            color: var(--text);
+            font-size: 16px;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .item-action {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            cursor: pointer;
+            font-size: 18px;
+            transition: var(--transition);
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .item-action.delete:hover {
+            color: var(--danger);
+            background-color: var(--danger-light);
+        }
+
+        .item-action.edit:hover {
+            color: var(--primary);
+            background-color: var(--primary-light);
+        }
+
+        /* Shopping List */
+        .shopping-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .shopping-item {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            background-color: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            border: 1px solid #f0f0f0;
+        }
+
+        .shopping-item:hover {
+            transform: translateY(-1px);
+        }
+
+        .shopping-item input[type="checkbox"] {
+            margin-right: 16px;
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary);
+        }
+
+        .shopping-item .item-name {
+            flex: 1;
+            font-size: 16px;
+        }
+
+        .shopping-item .item-quantity {
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        /* Recipe Suggestions */
+        .recipe-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .recipe-card {
+            background-color: var(--surface);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1px solid #f0f0f0;
+        }
+
+        .recipe-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .recipe-image {
+            height: 120px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+        }
+
+        .recipe-details {
+            padding: 16px;
+        }
+
+        .recipe-name {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text);
+            font-size: 15px;
+        }
+
+        .recipe-ingredients {
+            font-size: 13px;
+            color: var(--text-light);
+            line-height: 1.4;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .action-buttons .btn {
+            flex: 1;
+        }
+
+        /* Notifications */
+        .notification {
+            background-color: var(--primary-light);
+            border-left: 4px solid var(--primary);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: var(--transition);
+        }
+
+        .notification:hover {
+            transform: translateX(4px);
+        }
+
+        .notification.warning {
+            background-color: var(--warning-light);
+            border-left-color: var(--warning);
+        }
+
+        .notification.danger {
+            background-color: var(--danger-light);
+            border-left-color: var(--danger);
+        }
+
+        .notification i {
+            font-size: 24px;
+        }
+
+        .notification.warning i {
+            color: var(--warning);
+        }
+
+        .notification.danger i {
+            color: var(--danger);
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text);
+        }
+
+        .notification-desc {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-width: 480px;
+            margin: 0 auto;
+            background-color: var(--surface);
+            display: flex;
+            justify-content: space-around;
+            padding: 16px 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-light);
+            font-size: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            padding: 8px 12px;
+            border-radius: 12px;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+            background-color: var(--primary-light);
+        }
+
+        .nav-item i {
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+
+        .nav-item:hover {
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: var(--surface);
+            width: 100%;
+            max-width: 440px;
+            border-radius: var(--radius);
+            overflow: hidden;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 24px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            padding: 24px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 16px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--primary);
+            color: white;
+            padding: 16px 24px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            z-index: 1001;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            max-width: 90%;
+            animation: toastSlideIn 0.3s ease-out;
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .toast.show {
+            display: flex;
+        }
+
+        /* Notification Settings */
+        .notification-settings {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: var(--transition);
+            border-radius: 28px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: var(--transition);
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        /* Barcode Scanner Styles */
+        .scanner-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: black;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+        }
+
+        .scanner-header {
+            background-color: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1001;
+        }
+
+        .scanner-view {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .scanner-reticle {
+            width: 280px;
+            height: 280px;
+            border: 2px solid white;
+            border-radius: 24px;
+            position: relative;
+            animation: pulse 2s infinite;
+        }
+
+        .scanner-reticle:before, .scanner-reticle:after {
+            content: '';
+            position: absolute;
+            width: 44px;
+            height: 44px;
+            border: 2px solid white;
+        }
+
+        .scanner-reticle:before {
+            top: -2px;
+            left: -2px;
+            border-right: none;
+            border-bottom: none;
+            border-top-left-radius: 24px;
+        }
+
+        .scanner-reticle:after {
+            bottom: -2px;
+            right: -2px;
+            border-left: none;
+            border-top: none;
+            border-bottom-right-radius: 24px;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+
+        .scanner-controls {
+            background-color: rgba(0,0,0,0.8);
+            padding: 24px;
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            z-index: 1001;
+        }
+
+        .scanner-btn {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background-color: rgba(255,255,255,0.2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            border: none;
+            transition: var(--transition);
+        }
+
+        .scanner-btn:hover {
+            background-color: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+
+        /* Quantity Stepper */
+        .quantity-stepper {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .stepper-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background-color: var(--primary-light);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .stepper-btn:hover {
+            background-color: var(--primary);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .stepper-value {
+            font-size: 20px;
+            font-weight: 600;
+            min-width: 40px;
+            text-align: center;
+            color: var(--text);
+        }
+
+        /* Category Picker */
+        .category-picker {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .category-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: var(--transition);
+            background-color: var(--surface);
+        }
+
+        .category-option:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .category-option.selected {
+            border-color: var(--primary);
+            background-color: var(--primary-light);
+            transform: translateY(-2px);
+        }
+
+        .category-option i {
+            font-size: 28px;
+            margin-bottom: 12px;
+            color: var(--text-light);
+        }
+
+        .category-option.selected i {
+            color: var(--primary);
+        }
+
+        /* Other Category Input */
+        .other-category-input {
+            display: none;
+            margin-top: 12px;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 480px) {
+            .dashboard-cards, .recipe-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .category-picker {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .content {
+                padding: 20px;
+                padding-bottom: 90px;
+            }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-light);
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: #e0e0e0;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 12px;
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        /* Logout Button */
+        .logout-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 22px;
+            transition: var(--transition);
+            padding: 8px;
+            border-radius: 50%;
+        }
+
+        .logout-btn:hover {
+            background-color: rgba(255,255,255,0.1);
+            transform: scale(1.1);
+        }
+
+        /* Professional Enhancements */
+        .welcome-message {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .welcome-message h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .welcome-message p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: var(--radius);
+            text-align: center;
+            box-shadow: var(--shadow);
+            border: 1px solid #f0f0f0;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <!-- Authentication Screens -->
+    <div id="auth-screens">
+        <!-- Login Screen -->
+        <div class="auth-container" id="login-screen">
+            <div class="logo" style="margin-bottom: 40px;">
+                <i class="fas fa-shopping-basket" style="font-size: 56px;"></i>
+                <h1 style="font-size: 32px;">Smart Grocery Manager</h1>
+            </div>
+            <div class="auth-form">
+                <h2>Welcome Back</h2>
+                <div class="form-group">
+                    <label for="login-email">Email Address</label>
+                    <input type="email" id="login-email" class="form-control" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" class="form-control" placeholder="Enter your password">
+                </div>
+                <div id="login-error" class="error-message"></div>
+                <button class="btn btn-primary" id="login-btn" style="margin-top: 24px;">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </button>
+                <div class="auth-switch">
+                    <a href="#" id="forgot-password-link">Forgot your password?</a>
+                </div>
+                <div class="auth-switch">
+                    Don't have an account? <a href="#" id="create-account-link">Create one</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Account Screen -->
+        <div class="auth-container" id="create-account-screen" style="display: none;">
+            <div class="logo" style="margin-bottom: 40px;">
+                <i class="fas fa-shopping-basket" style="font-size: 56px;"></i>
+                <h1 style="font-size: 32px;">Create Account</h1>
+            </div>
+            <div class="auth-form">
+                <h2>Join Smart Grocery Manager</h2>
+                <div class="form-group">
+                    <label for="signup-name">Full Name</label>
+                    <input type="text" id="signup-name" class="form-control" placeholder="Enter your full name">
+                </div>
+                <div class="form-group">
+                    <label for="signup-email">Email Address</label>
+                    <input type="email" id="signup-email" class="form-control" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="signup-password">Password</label>
+                    <input type="password" id="signup-password" class="form-control" placeholder="Create a password (min. 6 characters)">
+                </div>
+                <div class="form-group">
+                    <label for="signup-confirm-password">Confirm Password</label>
+                    <input type="password" id="signup-confirm-password" class="form-control" placeholder="Confirm your password">
+                </div>
+                <div id="signup-error" class="error-message"></div>
+                <div id="signup-success" class="success-message"></div>
+                <button class="btn btn-primary" id="signup-btn" style="margin-top: 24px;">
+                    <i class="fas fa-user-plus"></i> Create Account
+                </button>
+                <div class="auth-switch">
+                    Already have an account? <a href="#" id="back-to-login-link">Sign in</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forgot Password Screen -->
+        <div class="auth-container" id="forgot-password-screen" style="display: none;">
+            <div class="logo" style="margin-bottom: 40px;">
+                <i class="fas fa-shopping-basket" style="font-size: 56px;"></i>
+                <h1 style="font-size: 32px;">Reset Password</h1>
+            </div>
+            <div class="auth-form">
+                <h2>Reset Your Password</h2>
+                <div class="form-group">
+                    <label for="reset-email">Email Address</label>
+                    <input type="email" id="reset-email" class="form-control" placeholder="Enter your email">
+                </div>
+                <div id="reset-error" class="error-message"></div>
+                <div id="reset-success" class="success-message"></div>
+                <button class="btn btn-primary" id="reset-btn" style="margin-top: 24px;">
+                    <i class="fas fa-key"></i> Send Reset Link
+                </button>
+                <div class="auth-switch">
+                    <a href="#" id="back-to-login-from-reset">Back to Sign In</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- New Password Screen -->
+        <div class="auth-container" id="new-password-screen" style="display: none;">
+            <div class="logo" style="margin-bottom: 40px;">
+                <i class="fas fa-shopping-basket" style="font-size: 56px;"></i>
+                <h1 style="font-size: 32px;">New Password</h1>
+            </div>
+            <div class="auth-form">
+                <h2>Create New Password</h2>
+                <div class="form-group">
+                    <label for="new-password">New Password</label>
+                    <input type="password" id="new-password" class="form-control" placeholder="Enter new password (min. 6 characters)">
+                </div>
+                <div class="form-group">
+                    <label for="confirm-new-password">Confirm New Password</label>
+                    <input type="password" id="confirm-new-password" class="form-control" placeholder="Confirm new password">
+                </div>
+                <div id="new-password-error" class="error-message"></div>
+                <div id="new-password-success" class="success-message"></div>
+                <button class="btn btn-primary" id="save-new-password-btn" style="margin-top: 24px;">
+                    <i class="fas fa-save"></i> Save New Password
+                </button>
+                <div class="auth-switch">
+                    <a href="#" id="back-to-login-from-new-password">Back to Sign In</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="app-container" id="app-container" style="display: none;">
+        <!-- Header -->
+        <header>
+            <div class="logo">
+                <i class="fas fa-shopping-basket"></i>
+                <h1>Smart Grocery Manager</h1>
+            </div>
+            <div class="header-actions">
+                <i class="fas fa-bell" id="notifications-btn"></i>
+                <button class="logout-btn" id="logout-btn" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <div class="nav-tab active" data-tab="dashboard">Dashboard</div>
+            <div class="nav-tab" data-tab="inventory">Inventory</div>
+            <div class="nav-tab" data-tab="shopping">Shopping List</div>
+            <div class="nav-tab" data-tab="recipes">Recipes</div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <!-- Dashboard Tab -->
+            <div class="tab-content active" id="dashboard">
+                <div class="welcome-message" id="welcome-message">
+                    <h2>Welcome back, <span id="user-greeting">User</span>!</h2>
+                    <p>Manage your groceries efficiently and reduce food waste</p>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Inventory Overview</h2>
+                    <div class="dashboard-cards">
+                        <div class="dashboard-card inventory-card">
+                            <i class="fas fa-boxes"></i>
+                            <div class="count" id="total-items">0</div>
+                            <div class="label">Total Items</div>
+                        </div>
+                        <div class="dashboard-card expiring-card">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div class="count" id="expiring-soon">0</div>
+                            <div class="label">Expiring Soon</div>
+                        </div>
+                        <div class="dashboard-card shopping-card">
+                            <i class="fas fa-shopping-cart"></i>
+                            <div class="count" id="shopping-items">0</div>
+                            <div class="label">Shopping List</div>
+                        </div>
+                        <div class="dashboard-card recipes-card">
+                            <i class="fas fa-utensils"></i>
+                            <div class="count" id="recipe-count">0</div>
+                            <div class="label">Recipes Available</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Notifications</h2>
+                    <div id="notifications-container">
+                        <!-- Notifications will be dynamically added here -->
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Quick Actions</h2>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="scan-barcode">
+                            <i class="fas fa-barcode"></i> Scan Barcode
+                        </button>
+                        <button class="btn btn-outline" id="add-manually">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Expiring Soon</h2>
+                    <div class="inventory-list" id="expiring-items">
+                        <!-- Expiring items will be dynamically added here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Tab -->
+            <div class="tab-content" id="inventory">
+                <div class="section">
+                    <h2 class="section-title">
+                        My Inventory
+                        <a href="#" id="filter-inventory">Filter</a>
+                    </h2>
+                    <div class="inventory-list" id="inventory-items">
+                        <!-- Inventory items will be dynamically added here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shopping List Tab -->
+            <div class="tab-content" id="shopping">
+                <div class="section">
+                    <h2 class="section-title">
+                        Shopping List
+                        <a href="#" id="edit-shopping-list">Edit</a>
+                    </h2>
+                    <div class="shopping-list" id="shopping-list-items">
+                        <!-- Shopping list items will be dynamically added here -->
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Order Online</h2>
+                    <div class="action-buttons">
+                        <a href="https://www.checkers.co.za/?utm_source=google_search&utm_medium=responsive+search+ad&utm_campaign=sixty60_brand&gclsrc=aw.ds&gad_source=1&gad_campaignid=22524966444&gbraid=0AAAAACo4dyu8Zvnakc1k0XKQXUsBg_vEL&gclid=CjwKCAiA24XJBhBXEiwAXElO36JnRbp-ar74YP2CnoTc6qSlaRubjOWxb9V5Zqr90fFqBtpZHRrPWRoCHhcQAvD_BwE" 
+                           target="_blank" class="btn btn-secondary" style="text-decoration: none;">
+                            <i class="fas fa-store"></i> Shop at Checkers
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recipes Tab -->
+            <div class="tab-content" id="recipes">
+                <div class="section">
+                    <h2 class="section-title">
+                        Recipe Suggestions
+                        <a href="#" id="see-all-recipes">See All</a>
+                    </h2>
+                    <div class="recipe-list" id="recipe-suggestions">
+                        <!-- Recipe cards will be dynamically added here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav">
+            <div class="nav-item active" data-tab="dashboard">
+                <i class="fas fa-chart-pie"></i>
+                <span>Dashboard</span>
+            </div>
+            <div class="nav-item" data-tab="inventory">
+                <i class="fas fa-box-open"></i>
+                <span>Inventory</span>
+            </div>
+            <div class="nav-item" id="add-item-btn">
+                <i class="fas fa-plus-circle"></i>
+                <span>Add</span>
+            </div>
+            <div class="nav-item" data-tab="shopping">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Shopping</span>
+            </div>
+            <div class="nav-item" data-tab="recipes">
+                <i class="fas fa-utensils"></i>
+                <span>Recipes</span>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div class="toast" id="toast">
+            <i class="fas fa-check-circle"></i>
+            <span id="toast-message">Operation completed successfully</span>
+        </div>
+
+        <!-- Barcode Scanner -->
+        <div class="scanner-container" id="scanner-container">
+            <div class="scanner-header">
+                <span>Scan Barcode</span>
+                <i class="fas fa-times" id="close-scanner"></i>
+            </div>
+            <div class="scanner-view">
+                <div class="scanner-reticle"></div>
+            </div>
+            <div class="scanner-controls">
+                <button class="scanner-btn" id="toggle-flash">
+                    <i class="fas fa-bolt"></i>
+                </button>
+                <button class="scanner-btn" id="manual-entry">
+                    <i class="fas fa-keyboard"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Add Item Modal -->
+        <div class="modal" id="add-item-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Add New Item</h3>
+                    <i class="fas fa-times" id="close-modal"></i>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="item-name">Item Name</label>
+                        <input type="text" id="item-name" class="form-control" placeholder="Enter item name">
+                    </div>
+                    <div class="form-group">
+                        <label for="item-category">Category</label>
+                        <div class="category-picker">
+                            <div class="category-option" data-category="fruit">
+                                <i class="fas fa-apple-alt"></i>
+                                <span>Fruit</span>
+                            </div>
+                            <div class="category-option" data-category="vegetable">
+                                <i class="fas fa-carrot"></i>
+                                <span>Vegetable</span>
+                            </div>
+                            <div class="category-option" data-category="dairy">
+                                <i class="fas fa-cheese"></i>
+                                <span>Dairy</span>
+                            </div>
+                            <div class="category-option" data-category="meat">
+                                <i class="fas fa-drumstick-bite"></i>
+                                <span>Meat</span>
+                            </div>
+                            <div class="category-option" data-category="grains">
+                                <i class="fas fa-bread-slice"></i>
+                                <span>Grains</span>
+                            </div>
+                            <div class="category-option" data-category="other">
+                                <i class="fas fa-box"></i>
+                                <span>Other</span>
+                            </div>
+                        </div>
+                        <div class="other-category-input" id="other-category-input">
+                            <input type="text" id="other-category-text" class="form-control" placeholder="Enter custom category">
+                        </div>
+                        <input type="hidden" id="item-category" value="fruit">
+                    </div>
+                    <div class="form-group">
+                        <label for="item-quantity">Quantity</label>
+                        <div class="quantity-stepper">
+                            <button class="stepper-btn" id="decrease-quantity">-</button>
+                            <span class="stepper-value" id="quantity-value">1</span>
+                            <button class="stepper-btn" id="increase-quantity">+</button>
+                        </div>
+                        <input type="hidden" id="item-quantity" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="item-expiry">Expiry Date</label>
+                        <input type="date" id="item-expiry" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="item-notes">Notes (Optional)</label>
+                        <textarea id="item-notes" class="form-control" placeholder="Add any notes about this item" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline" id="cancel-add">Cancel</button>
+                    <button class="btn btn-primary" id="save-item">Save Item</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Modal -->
+        <div class="modal" id="account-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Account Settings</h3>
+                    <i class="fas fa-times" id="close-account-modal"></i>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="user-name">Name</label>
+                        <input type="text" id="user-name" class="form-control" placeholder="Enter your name">
+                    </div>
+                    <div class="form-group">
+                        <label for="user-email">Email</label>
+                        <input type="email" id="user-email" class="form-control" placeholder="Enter your email">
+                    </div>
+                    <div class="form-group">
+                        <label for="user-phone">Phone Number</label>
+                        <input type="tel" id="user-phone" class="form-control" placeholder="Enter your phone number">
+                    </div>
+                    
+                    <h3 style="margin: 24px 0 16px; color: var(--text);">Notification Preferences</h3>
+                    <div class="notification-settings">
+                        <div class="setting-item">
+                            <span>Low Stock Alerts</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="low-stock-alerts" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <span>Expiration Alerts</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="expiration-alerts" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <span>SMS Notifications</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="sms-notifications">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <span>WhatsApp Notifications</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="whatsapp-notifications">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline" id="cancel-account">Cancel</button>
+                    <button class="btn btn-primary" id="save-account">Save Settings</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications Modal -->
+        <div class="modal" id="notifications-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Notification Settings</h3>
+                    <i class="fas fa-times" id="close-notifications-modal"></i>
+                </div>
+                <div class="modal-body">
+                    <div class="notification-settings">
+                        <div class="setting-item">
+                            <span>Low Stock Alerts</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="notif-low-stock" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <span>Expiration Alerts</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="notif-expiration" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <span>SMS Notifications</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="notif-sms">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <span>WhatsApp Notifications</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="notif-whatsapp">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <span>Weekly Summary</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="notif-weekly">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons" style="margin-top: 24px;">
+                        <button class="btn btn-primary" id="test-sms">
+                            <i class="fas fa-sms"></i> Test SMS
+                        </button>
+                        <button class="btn btn-primary" id="test-whatsapp">
+                            <i class="fab fa-whatsapp"></i> Test WhatsApp
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline" id="cancel-notifications">Cancel</button>
+                    <button class="btn btn-primary" id="save-notifications">Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://bupkifdpdgypuasgmveg.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1cGtpZmRwZGd5cHVhc2dtdmVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NDk1MTIsImV4cCI6MjA3OTQyNTUxMn0.8q06pZl68sypIzQYayHQRaD5w-onAk1fU4S10gmxaBo';
+        
+        // Initialize Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // App Data
+        let inventory = [];
+        let shoppingList = [];
+        let recipes = [];
+        let userSettings = {
+            name: '',
+            email: '',
+            phone: '',
+            lowStockAlerts: true,
+            expirationAlerts: true,
+            smsNotifications: false,
+            whatsappNotifications: false,
+            weeklySummary: true
+        };
+
+        // Barcode database simulation
+        const barcodeDatabase = {
+            '012345678905': { name: 'Organic Milk', category: 'dairy', image: '🥛' },
+            '098765432109': { name: 'Whole Wheat Bread', category: 'grains', image: '🍞' },
+            '111222333444': { name: 'Fresh Apples', category: 'fruit', image: '🍎' },
+            '555666777888': { name: 'Chicken Breast', category: 'meat', image: '🍗' },
+            '999000111222': { name: 'Carrots', category: 'vegetable', image: '🥕' }
+        };
+
+        // Utility Functions
+        function getFutureDate(days) {
+            const date = new Date();
+            date.setDate(date.getDate() + days);
+            return date.toISOString().split('T')[0];
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function daysUntil(dateString) {
+            const today = new Date();
+            const expiry = new Date(dateString);
+            const diffTime = expiry - today;
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            toastMessage.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function showAuthError(elementId, message) {
+            const errorElement = document.getElementById(elementId);
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+
+        function hideAuthError(elementId) {
+            const errorElement = document.getElementById(elementId);
+            errorElement.style.display = 'none';
+        }
+
+        function showAuthSuccess(elementId, message) {
+            const successElement = document.getElementById(elementId);
+            successElement.textContent = message;
+            successElement.style.display = 'block';
+        }
+
+        function hideAuthSuccess(elementId) {
+            const successElement = document.getElementById(elementId);
+            successElement.style.display = 'none';
+        }
+
+        // NEW: Check for low stock in all categories
+        function checkLowStockAlert() {
+            const categories = ['fruit', 'vegetable', 'dairy', 'meat', 'grains', 'other'];
+            const lowStockCategories = [];
+            
+            categories.forEach(category => {
+                const categoryItems = inventory.filter(item => item.category === category);
+                const totalQuantity = categoryItems.reduce((sum, item) => sum + parseInt(item.quantity), 0);
+                
+                if (totalQuantity < 3) {
+                    lowStockCategories.push(category);
+                }
+            });
+            
+            if (lowStockCategories.length > 0) {
+                const message = `Low stock alert: ${lowStockCategories.join(', ')} categories have less than 3 items`;
+                showToast(message);
+                
+                // Add notification to dashboard
+                const notificationsContainer = document.getElementById('notifications-container');
+                const lowStockNotification = document.createElement('div');
+                lowStockNotification.className = 'notification warning';
+                lowStockNotification.innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div class="notification-content">
+                        <div class="notification-title">Low Stock in Multiple Categories</div>
+                        <div class="notification-desc">${lowStockCategories.join(', ')} categories have less than 3 items</div>
+                    </div>
+                `;
+                notificationsContainer.prepend(lowStockNotification);
+                
+                // Send notifications if enabled
+                if (userSettings.smsNotifications) {
+                    sendSMSNotification(message);
+                }
+                if (userSettings.whatsappNotifications) {
+                    sendWhatsAppNotification(message);
+                }
+            }
+        }
+
+        // Automatic Expiration Notifications
+        function checkExpirationNotifications() {
+            const today = new Date();
+            const notifications = [];
+            
+            inventory.forEach(item => {
+                const daysUntilExpiry = daysUntil(item.expiry);
+                
+                if (daysUntilExpiry === 1 && userSettings.expirationAlerts) {
+                    notifications.push({
+                        type: 'warning',
+                        icon: 'fa-exclamation-triangle',
+                        title: `${item.name} expires tomorrow!`,
+                        desc: `Use this item before it expires.`
+                    });
+                    
+                    // Send automatic notification
+                    if (userSettings.smsNotifications) {
+                        sendSMSNotification(`${item.name} expires tomorrow! Use it soon.`);
+                    }
+                    if (userSettings.whatsappNotifications) {
+                        sendWhatsAppNotification(`${item.name} expires tomorrow! Use it soon.`);
+                    }
+                }
+                
+                if (daysUntilExpiry === 0 && userSettings.expirationAlerts) {
+                    notifications.push({
+                        type: 'danger',
+                        icon: 'fa-exclamation-circle',
+                        title: `${item.name} expires today!`,
+                        desc: `Use this item immediately.`
+                    });
+                    
+                    // Send automatic notification
+                    if (userSettings.smsNotifications) {
+                        sendSMSNotification(`URGENT: ${item.name} expires today! Use it immediately.`);
+                    }
+                    if (userSettings.whatsappNotifications) {
+                        sendWhatsAppNotification(`URGENT: ${item.name} expires today! Use it immediately.`);
+                    }
+                }
+            });
+            
+            return notifications;
+        }
+
+        // Authentication Functions
+        async function handleLogin(email, password) {
+            hideAuthError('login-error');
+            
+            if (!email || !password) {
+                showAuthError('login-error', 'Please enter both email and password');
+                return false;
+            }
+
+            try {
+                // Try to sign in with Supabase
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    showAuthError('login-error', error.message);
+                    return false;
+                }
+
+                if (data.user) {
+                    // Save user session
+                    localStorage.setItem('supabase_user', JSON.stringify(data.user));
+                    
+                    // Load user profile
+                    const { data: profile, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', data.user.id)
+                        .single();
+
+                    if (!profileError && profile) {
+                        userSettings.name = profile.name || '';
+                        userSettings.email = profile.email || '';
+                        userSettings.phone = profile.phone || '';
+                    } else {
+                        userSettings.name = data.user.email.split('@')[0];
+                        userSettings.email = data.user.email;
+                    }
+                    
+                    return true;
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showAuthError('login-error', 'An error occurred during login');
+                return false;
+            }
+        }
+
+        async function handleSignup(name, email, password, confirmPassword) {
+            hideAuthError('signup-error');
+            hideAuthSuccess('signup-success');
+            
+            if (!name || !email || !password || !confirmPassword) {
+                showAuthError('signup-error', 'Please fill in all fields');
+                return false;
+            }
+
+            if (password !== confirmPassword) {
+                showAuthError('signup-error', 'Passwords do not match');
+                return false;
+            }
+
+            if (password.length < 6) {
+                showAuthError('signup-error', 'Password must be at least 6 characters');
+                return false;
+            }
+
+            try {
+                // Sign up with Supabase
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            name: name
+                        }
+                    }
+                });
+
+                if (error) {
+                    showAuthError('signup-error', error.message);
+                    return false;
+                }
+
+                if (data.user) {
+                    // Create user profile
+                    const { error: profileError } = await supabase
+                        .from('profiles')
+                        .insert([
+                            { 
+                                id: data.user.id, 
+                                name: name, 
+                                email: email,
+                                created_at: new Date().toISOString()
+                            }
+                        ]);
+
+                    if (profileError) {
+                        console.error('Profile creation error:', profileError);
+                    }
+
+                    showAuthSuccess('signup-success', 'Account created successfully! Please check your email for verification.');
+                    return true;
+                }
+            } catch (error) {
+                console.error('Signup error:', error);
+                showAuthError('signup-error', 'An error occurred during signup');
+                return false;
+            }
+        }
+
+        async function handlePasswordReset(email) {
+            hideAuthError('reset-error');
+            hideAuthSuccess('reset-success');
+            
+            if (!email) {
+                showAuthError('reset-error', 'Please enter your email');
+                return false;
+            }
+
+            try {
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: window.location.origin,
+                });
+
+                if (error) {
+                    showAuthError('reset-error', error.message);
+                    return false;
+                }
+
+                showAuthSuccess('reset-success', 'Password reset link sent to your email');
+                return true;
+            } catch (error) {
+                console.error('Password reset error:', error);
+                showAuthError('reset-error', 'An error occurred while sending reset link');
+                return false;
+            }
+        }
+
+        async function handleNewPassword(newPassword, confirmNewPassword) {
+            hideAuthError('new-password-error');
+            hideAuthSuccess('new-password-success');
+            
+            if (!newPassword || !confirmNewPassword) {
+                showAuthError('new-password-error', 'Please fill in both fields');
+                return false;
+            }
+
+            if (newPassword !== confirmNewPassword) {
+                showAuthError('new-password-error', 'Passwords do not match');
+                return false;
+            }
+
+            if (newPassword.length < 6) {
+                showAuthError('new-password-error', 'Password must be at least 6 characters');
+                return false;
+            }
+
+            try {
+                const { error } = await supabase.auth.updateUser({
+                    password: newPassword
+                });
+
+                if (error) {
+                    showAuthError('new-password-error', error.message);
+                    return false;
+                }
+
+                showAuthSuccess('new-password-success', 'Password updated successfully!');
+                return true;
+            } catch (error) {
+                console.error('Password update error:', error);
+                showAuthError('new-password-error', 'An error occurred while updating password');
+                return false;
+            }
+        }
+
+        // Logout Function
+        async function handleLogout() {
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) {
+                    console.error('Logout error:', error);
+                }
+                
+                // Clear local storage
+                localStorage.removeItem('supabase_user');
+                localStorage.removeItem('demo_inventory');
+                localStorage.removeItem('demo_shoppingList');
+                localStorage.removeItem('demo_userSettings');
+                
+                // Reset app data
+                inventory = [];
+                shoppingList = [];
+                userSettings = {
+                    name: '',
+                    email: '',
+                    phone: '',
+                    lowStockAlerts: true,
+                    expirationAlerts: true,
+                    smsNotifications: false,
+                    whatsappNotifications: false,
+                    weeklySummary: true
+                };
+                
+                // Show login screen
+                document.getElementById('app-container').style.display = 'none';
+                document.getElementById('auth-screens').style.display = 'block';
+                showScreen('login-screen');
+                
+                showToast('Logged out successfully');
+            } catch (error) {
+                console.error('Logout error:', error);
+                showToast('Error during logout');
+            }
+        }
+
+        // Check if user is already logged in
+        async function checkExistingSession() {
+            try {
+                const { data, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    console.error('Session error:', error);
+                    return false;
+                }
+
+                if (data.session) {
+                    // User is logged in, load their data
+                    const user = data.session.user;
+                    localStorage.setItem('supabase_user', JSON.stringify(user));
+                    
+                    // Load user profile
+                    const { data: profile, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
+
+                    if (!profileError && profile) {
+                        userSettings.name = profile.name || '';
+                        userSettings.email = profile.email || '';
+                        userSettings.phone = profile.phone || '';
+                    } else {
+                        userSettings.name = user.email.split('@')[0];
+                        userSettings.email = user.email;
+                    }
+                    
+                    // Show the app
+                    document.getElementById('auth-screens').style.display = 'none';
+                    document.getElementById('app-container').style.display = 'block';
+                    await initApp();
+                    showToast(`Welcome back, ${userSettings.name}!`);
+                    return true;
+                }
+            } catch (error) {
+                console.error('Session check error:', error);
+            }
+            return false;
+        }
+
+        // Supabase Data Operations
+        async function loadUserData() {
+            try {
+                // Check if we have a user session
+                const userData = localStorage.getItem('supabase_user');
+                if (!userData) {
+                    // No user session, use demo data
+                    await loadDemoData();
+                    return;
+                }
+
+                const user = JSON.parse(userData);
+                
+                // Try to load user data from Supabase
+                const { data: inventoryData, error: inventoryError } = await supabase
+                    .from('inventory')
+                    .select('*')
+                    .eq('user_id', user.id);
+
+                const { data: shoppingData, error: shoppingError } = await supabase
+                    .from('shopping_list')
+                    .select('*')
+                    .eq('user_id', user.id);
+
+                const { data: settingsData, error: settingsError } = await supabase
+                    .from('user_settings')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (!inventoryError && inventoryData) {
+                    inventory = inventoryData;
+                }
+
+                if (!shoppingError && shoppingData) {
+                    shoppingList = shoppingData;
+                }
+
+                if (!settingsError && settingsData) {
+                    userSettings = { ...userSettings, ...settingsData };
+                }
+
+                // If no data exists, load demo data
+                if (inventory.length === 0 && shoppingList.length === 0) {
+                    await loadDemoData();
+                }
+                
+                recipes = [
+                    { id: 1, name: 'Chicken Salad', ingredients: 'Chicken, Lettuce, Tomatoes', image: '🥗' },
+                    { id: 2, name: 'Fruit Smoothie', ingredients: 'Apples, Yogurt, Milk', image: '🥤' },
+                    { id: 3, name: 'Stir Fry', ingredients: 'Bell Peppers, Chicken', image: '🍲' },
+                    { id: 4, name: 'Omelette', ingredients: 'Eggs, Bell Peppers', image: '🍳' }
+                ];
+
+                showToast('Welcome to Smart Grocery Manager');
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                await loadDemoData();
+                showToast('Welcome to Smart Grocery Manager');
+            }
+        }
+
+        async function loadDemoData() {
+            // Load demo data if no user data exists
+            const savedInventory = localStorage.getItem('demo_inventory');
+            const savedShoppingList = localStorage.getItem('demo_shoppingList');
+            const savedUserSettings = localStorage.getItem('demo_userSettings');
+            
+            if (savedInventory) inventory = JSON.parse(savedInventory);
+            if (savedShoppingList) shoppingList = JSON.parse(savedShoppingList);
+            if (savedUserSettings) userSettings = JSON.parse(savedUserSettings);
+            
+            // If no demo data exists, show empty state
+            if (inventory.length === 0) {
+                // Don't initialize with sample data - let user add their own
+                inventory = [];
+            }
+            
+            if (shoppingList.length === 0) {
+                shoppingList = [];
+            }
+        }
+
+        async function saveUserData() {
+            try {
+                // Check if we have a user session
+                const userData = localStorage.getItem('supabase_user');
+                if (!userData) {
+                    // No user session, save to local storage as demo data
+                    localStorage.setItem('demo_inventory', JSON.stringify(inventory));
+                    localStorage.setItem('demo_shoppingList', JSON.stringify(shoppingList));
+                    localStorage.setItem('demo_userSettings', JSON.stringify(userSettings));
+                    return true;
+                }
+
+                const user = JSON.parse(userData);
+                
+                // Save to Supabase
+                // Note: In a real app, you would update existing records or insert new ones
+                // For simplicity, we're just saving to localStorage here
+                localStorage.setItem('demo_inventory', JSON.stringify(inventory));
+                localStorage.setItem('demo_shoppingList', JSON.stringify(shoppingList));
+                localStorage.setItem('demo_userSettings', JSON.stringify(userSettings));
+                
+                return true;
+            } catch (error) {
+                console.error('Error saving data:', error);
+                return false;
+            }
+        }
+
+        // Inventory Management
+        async function addItemToInventory(item) {
+            const newItem = {
+                id: Date.now(),
+                name: item.name,
+                category: item.category,
+                quantity: parseInt(item.quantity),
+                expiry: item.expiry,
+                icon: getIconForCategory(item.category),
+                notes: item.notes || '',
+                created_at: new Date().toISOString()
+            };
+            
+            inventory.push(newItem);
+            const saved = await saveUserData();
+            if (saved) {
+                renderInventory();
+                updateDashboard();
+                showToast(`${item.name} added to inventory`);
+                
+                // Check if we should send notifications
+                checkAndSendNotifications();
+                
+                // NEW: Check for low stock in all categories
+                checkLowStockAlert();
+            } else {
+                showToast('Error saving item');
+            }
+        }
+
+        async function removeItemFromInventory(id) {
+            const itemIndex = inventory.findIndex(item => item.id === id);
+            if (itemIndex !== -1) {
+                const itemName = inventory[itemIndex].name;
+                inventory.splice(itemIndex, 1);
+                const saved = await saveUserData();
+                if (saved) {
+                    renderInventory();
+                    updateDashboard();
+                    showToast(`${itemName} removed from inventory`);
+                } else {
+                    showToast('Error removing item');
+                }
+            }
+        }
+
+        function getIconForCategory(category) {
+            const icons = {
+                fruit: 'fa-apple-alt',
+                vegetable: 'fa-carrot',
+                dairy: 'fa-cheese',
+                meat: 'fa-drumstick-bite',
+                grains: 'fa-bread-slice',
+                other: 'fa-box'
+            };
+            return icons[category] || 'fa-box';
+        }
+
+        // Barcode Scanning
+        function simulateBarcodeScan() {
+            const barcodes = Object.keys(barcodeDatabase);
+            const randomBarcode = barcodes[Math.floor(Math.random() * barcodes.length)];
+            return randomBarcode;
+        }
+
+        function lookupBarcode(barcode) {
+            return barcodeDatabase[barcode] || null;
+        }
+
+        // Notification Functions
+        function checkAndSendNotifications() {
+            // Check for low stock
+            const lowStockItems = inventory.filter(item => item.quantity <= 1);
+            if (lowStockItems.length > 0 && userSettings.lowStockAlerts) {
+                const message = `Low stock alert: ${lowStockItems.map(item => item.name).join(', ')}`;
+                if (userSettings.smsNotifications) {
+                    sendSMSNotification(message);
+                }
+                if (userSettings.whatsappNotifications) {
+                    sendWhatsAppNotification(message);
+                }
+            }
+            
+            // Check for expiring items (1 day before)
+            const expiringItems = inventory.filter(item => daysUntil(item.expiry) === 1);
+            if (expiringItems.length > 0 && userSettings.expirationAlerts) {
+                const message = `Expiration alert: ${expiringItems.map(item => item.name).join(', ')} expiring tomorrow`;
+                if (userSettings.smsNotifications) {
+                    sendSMSNotification(message);
+                }
+                if (userSettings.whatsappNotifications) {
+                    sendWhatsAppNotification(message);
+                }
+            }
+        }
+
+        function sendSMSNotification(message) {
+            if (!userSettings.smsNotifications || !userSettings.phone) {
+                return;
+            }
+            
+            // In a real app, this would connect to an SMS API
+            console.log(`SMS to ${userSettings.phone}: ${message}`);
+        }
+
+        function sendWhatsAppNotification(message) {
+            if (!userSettings.whatsappNotifications || !userSettings.phone) {
+                return;
+            }
+            
+            // In a real app, this would connect to WhatsApp API
+            console.log(`WhatsApp to ${userSettings.phone}: ${message}`);
+        }
+
+        // Rendering Functions
+        function renderInventory() {
+            const inventoryContainer = document.getElementById('inventory-items');
+            
+            if (inventory.length === 0) {
+                inventoryContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-box-open"></i>
+                        <h3>Your inventory is empty</h3>
+                        <p>Start by adding your first grocery item</p>
+                        <button class="btn btn-primary" id="add-first-item" style="margin-top: 16px;">
+                            <i class="fas fa-plus"></i> Add Your First Item
+                        </button>
+                    </div>
+                `;
+                
+                // Add event listener to the "Add First Item" button
+                document.getElementById('add-first-item').addEventListener('click', () => {
+                    document.getElementById('add-item-modal').style.display = 'flex';
+                });
+                return;
+            }
+            
+            inventoryContainer.innerHTML = inventory.map(item => {
+                const days = daysUntil(item.expiry);
+                let expiryClass = '';
+                let expiryText = '';
+                
+                if (days === 0) {
+                    expiryClass = 'expiry-today';
+                    expiryText = 'Expires today';
+                } else if (days === 1) {
+                    expiryClass = 'expiry-soon';
+                    expiryText = 'Expires tomorrow';
+                } else if (days < 0) {
+                    expiryClass = 'expiry-today';
+                    expiryText = 'Expired';
+                } else if (days <= 3) {
+                    expiryClass = 'expiry-soon';
+                    expiryText = `Expires in ${days} days`;
+                } else {
+                    expiryText = `Expires in ${days} days`;
+                }
+                
+                return `
+                    <div class="inventory-item">
+                        <div class="item-icon ${item.category}">
+                            <i class="fas ${item.icon}"></i>
+                        </div>
+                        <div class="item-details">
+                            <div class="item-name">${item.name}</div>
+                            <div class="item-expiry ${expiryClass}">${expiryText}</div>
+                        </div>
+                        <div class="item-quantity">${item.quantity}</div>
+                        <div class="item-actions">
+                            <button class="item-action edit" data-id="${item.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="item-action delete" data-id="${item.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Add event listeners to delete buttons
+            document.querySelectorAll('.item-action.delete').forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    removeItemFromInventory(id);
+                });
+            });
+        }
+
+        function renderShoppingList() {
+            const shoppingContainer = document.getElementById('shopping-list-items');
+            
+            if (shoppingList.length === 0) {
+                shoppingContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-shopping-cart"></i>
+                        <h3>Your shopping list is empty</h3>
+                        <p>Add items you need to purchase</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            shoppingContainer.innerHTML = shoppingList.map(item => {
+                return `
+                    <div class="shopping-item">
+                        <input type="checkbox" ${item.checked ? 'checked' : ''} data-id="${item.id}">
+                        <div class="item-name" style="${item.checked ? 'text-decoration: line-through; color: var(--text-light);' : ''}">${item.name}</div>
+                        <div class="item-quantity">${item.quantity}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Add event listeners to checkboxes
+            document.querySelectorAll('.shopping-item input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    const item = shoppingList.find(item => item.id === id);
+                    if (item) {
+                        item.checked = this.checked;
+                        saveUserData();
+                        renderShoppingList();
+                    }
+                });
+            });
+        }
+
+        function renderRecipes() {
+            const recipesContainer = document.getElementById('recipe-suggestions');
+            
+            recipesContainer.innerHTML = recipes.map(recipe => {
+                return `
+                    <div class="recipe-card">
+                        <div class="recipe-image">
+                            ${recipe.image}
+                        </div>
+                        <div class="recipe-details">
+                            <div class="recipe-name">${recipe.name}</div>
+                            <div class="recipe-ingredients">${recipe.ingredients}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateDashboard() {
+            // Update greeting
+            document.getElementById('user-greeting').textContent = userSettings.name || 'User';
+            
+            // Update counts
+            document.getElementById('total-items').textContent = inventory.length;
+            
+            const expiringSoon = inventory.filter(item => daysUntil(item.expiry) <= 3).length;
+            document.getElementById('expiring-soon').textContent = expiringSoon;
+            
+            const shoppingItems = shoppingList.filter(item => !item.checked).length;
+            document.getElementById('shopping-items').textContent = shoppingItems;
+            
+            document.getElementById('recipe-count').textContent = recipes.length;
+            
+            // Update expiring items
+            const expiringContainer = document.getElementById('expiring-items');
+            const expiringItems = inventory.filter(item => daysUntil(item.expiry) <= 3);
+            
+            if (expiringItems.length === 0) {
+                expiringContainer.innerHTML = `
+                    <div class="empty-state" style="padding: 30px 20px;">
+                        <i class="fas fa-check-circle"></i>
+                        <h3>No items expiring soon</h3>
+                        <p>All your items are fresh!</p>
+                    </div>
+                `;
+            } else {
+                expiringContainer.innerHTML = expiringItems.map(item => {
+                    const days = daysUntil(item.expiry);
+                    let expiryClass = '';
+                    let expiryText = '';
+                    
+                    if (days === 0) {
+                        expiryClass = 'expiry-today';
+                        expiryText = 'Expires today';
+                    } else if (days === 1) {
+                        expiryClass = 'expiry-soon';
+                        expiryText = 'Expires tomorrow';
+                    } else if (days < 0) {
+                        expiryClass = 'expiry-today';
+                        expiryText = 'Expired';
+                    } else {
+                        expiryClass = 'expiry-soon';
+                        expiryText = `Expires in ${days} days`;
+                    }
+                    
+                    return `
+                        <div class="inventory-item">
+                            <div class="item-icon ${item.category}">
+                                <i class="fas ${item.icon}"></i>
+                            </div>
+                            <div class="item-details">
+                                <div class="item-name">${item.name}</div>
+                                <div class="item-expiry ${expiryClass}">${expiryText}</div>
+                            </div>
+                            <div class="item-quantity">${item.quantity}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            // Update notifications
+            updateNotifications();
+        }
+
+        function updateNotifications() {
+            const notificationsContainer = document.getElementById('notifications-container');
+            let notifications = [];
+            
+            // Check for low stock
+            const lowStockItems = inventory.filter(item => item.quantity <= 1);
+            if (lowStockItems.length > 0 && userSettings.lowStockAlerts) {
+                notifications.push({
+                    type: 'warning',
+                    icon: 'fa-exclamation-circle',
+                    title: `${lowStockItems.length} item${lowStockItems.length > 1 ? 's' : ''} running low`,
+                    desc: 'Consider adding to shopping list'
+                });
+            }
+            
+            // Check for expiring items (1 day before)
+            const expiringTomorrow = inventory.filter(item => daysUntil(item.expiry) === 1);
+            if (expiringTomorrow.length > 0 && userSettings.expirationAlerts) {
+                notifications.push({
+                    type: 'danger',
+                    icon: 'fa-exclamation-triangle',
+                    title: `${expiringTomorrow.length} item${expiringTomorrow.length > 1 ? 's' : ''} expiring tomorrow`,
+                    desc: 'Use them before they expire'
+                });
+            }
+            
+            // Check for expired items
+            const expiredItems = inventory.filter(item => daysUntil(item.expiry) < 0);
+            if (expiredItems.length > 0) {
+                notifications.push({
+                    type: 'danger',
+                    icon: 'fa-skull-crossbones',
+                    title: `${expiredItems.length} item${expiredItems.length > 1 ? 's' : ''} expired`,
+                    desc: 'Please dispose of these items'
+                });
+            }
+            
+            if (notifications.length === 0) {
+                notifications.push({
+                    type: '',
+                    icon: 'fa-info-circle',
+                    title: 'All good!',
+                    desc: 'No urgent notifications'
+                });
+            }
+            
+            notificationsContainer.innerHTML = notifications.map(notification => {
+                return `
+                    <div class="notification ${notification.type}">
+                        <i class="fas ${notification.icon}"></i>
+                        <div class="notification-content">
+                            <div class="notification-title">${notification.title}</div>
+                            <div class="notification-desc">${notification.desc}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Initialize App
+        async function initApp() {
+            await loadUserData();
+            renderInventory();
+            renderShoppingList();
+            renderRecipes();
+            updateDashboard();
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Check for expiration notifications
+            checkExpirationNotifications();
+        }
+
+        // Authentication Screen Management
+        function showScreen(screenId) {
+            // Hide all screens
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('create-account-screen').style.display = 'none';
+            document.getElementById('forgot-password-screen').style.display = 'none';
+            document.getElementById('new-password-screen').style.display = 'none';
+            
+            // Show the requested screen
+            document.getElementById(screenId).style.display = 'flex';
+        }
+
+        // Navigation function
+        function navigateToTab(tabId) {
+            // Remove active class from all tabs and contents
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            
+            // Add active class to clicked tab and corresponding content
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+            
+            // Update bottom navigation
+            document.querySelector(`.nav-item[data-tab="${tabId}"]`).classList.add('active');
+        }
+
+        function setupEventListeners() {
+            // Check for existing session on page load
+            document.addEventListener('DOMContentLoaded', async () => {
+                await checkExistingSession();
+            });
+
+            // Logout button
+            document.getElementById('logout-btn').addEventListener('click', handleLogout);
+
+            // Authentication screen navigation
+            document.getElementById('create-account-link').addEventListener('click', (e) => {
+                e.preventDefault();
+                showScreen('create-account-screen');
+            });
+
+            document.getElementById('back-to-login-link').addEventListener('click', (e) => {
+                e.preventDefault();
+                showScreen('login-screen');
+            });
+
+            document.getElementById('forgot-password-link').addEventListener('click', (e) => {
+                e.preventDefault();
+                showScreen('forgot-password-screen');
+            });
+
+            document.getElementById('back-to-login-from-reset').addEventListener('click', (e) => {
+                e.preventDefault();
+                showScreen('login-screen');
+            });
+
+            document.getElementById('back-to-login-from-new-password').addEventListener('click', (e) => {
+                e.preventDefault();
+                showScreen('login-screen');
+            });
+
+            // Login
+            document.getElementById('login-btn').addEventListener('click', async () => {
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                
+                const loginBtn = document.getElementById('login-btn');
+                const originalText = loginBtn.innerHTML;
+                loginBtn.innerHTML = '<div class="loading"></div> Signing In...';
+                loginBtn.disabled = true;
+                
+                const success = await handleLogin(email, password);
+                
+                if (success) {
+                    document.getElementById('auth-screens').style.display = 'none';
+                    document.getElementById('app-container').style.display = 'block';
+                    await initApp();
+                    showToast(`Welcome back, ${userSettings.name}!`);
+                }
+                
+                loginBtn.innerHTML = originalText;
+                loginBtn.disabled = false;
+            });
+
+            // Allow login with Enter key
+            document.getElementById('login-password').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('login-btn').click();
+                }
+            });
+
+            // Signup
+            document.getElementById('signup-btn').addEventListener('click', async () => {
+                const name = document.getElementById('signup-name').value;
+                const email = document.getElementById('signup-email').value;
+                const password = document.getElementById('signup-password').value;
+                const confirmPassword = document.getElementById('signup-confirm-password').value;
+                
+                const signupBtn = document.getElementById('signup-btn');
+                const originalText = signupBtn.innerHTML;
+                signupBtn.innerHTML = '<div class="loading"></div> Creating Account...';
+                signupBtn.disabled = true;
+                
+                const success = await handleSignup(name, email, password, confirmPassword);
+                
+                if (success) {
+                    // Clear form
+                    document.getElementById('signup-name').value = '';
+                    document.getElementById('signup-email').value = '';
+                    document.getElementById('signup-password').value = '';
+                    document.getElementById('signup-confirm-password').value = '';
+                }
+                
+                signupBtn.innerHTML = originalText;
+                signupBtn.disabled = false;
+            });
+
+            // Password Reset
+            document.getElementById('reset-btn').addEventListener('click', async () => {
+                const email = document.getElementById('reset-email').value;
+                
+                const resetBtn = document.getElementById('reset-btn');
+                const originalText = resetBtn.innerHTML;
+                resetBtn.innerHTML = '<div class="loading"></div> Sending...';
+                resetBtn.disabled = true;
+                
+                const success = await handlePasswordReset(email);
+                
+                if (success) {
+                    // Clear form
+                    document.getElementById('reset-email').value = '';
+                }
+                
+                resetBtn.innerHTML = originalText;
+                resetBtn.disabled = false;
+            });
+
+            // New Password
+            document.getElementById('save-new-password-btn').addEventListener('click', async () => {
+                const newPassword = document.getElementById('new-password').value;
+                const confirmNewPassword = document.getElementById('confirm-new-password').value;
+                
+                const saveBtn = document.getElementById('save-new-password-btn');
+                const originalText = saveBtn.innerHTML;
+                saveBtn.innerHTML = '<div class="loading"></div> Saving...';
+                saveBtn.disabled = true;
+                
+                const success = await handleNewPassword(newPassword, confirmNewPassword);
+                
+                if (success) {
+                    // Clear form
+                    document.getElementById('new-password').value = '';
+                    document.getElementById('confirm-new-password').value = '';
+                    
+                    // After a delay, go back to login
+                    setTimeout(() => {
+                        showScreen('login-screen');
+                    }, 2000);
+                }
+                
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            });
+
+            // Tab Navigation
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.getAttribute('data-tab');
+                    navigateToTab(tabId);
+                });
+            });
+
+            // Bottom Navigation
+            document.querySelectorAll('.nav-item').forEach((item, index) => {
+                if (item.id !== 'add-item-btn') {
+                    item.addEventListener('click', () => {
+                        const tabId = item.getAttribute('data-tab');
+                        navigateToTab(tabId);
+                    });
+                }
+            });
+
+            // Add Item Button
+            document.getElementById('add-item-btn').addEventListener('click', () => {
+                document.getElementById('add-item-modal').style.display = 'flex';
+            });
+
+            // Barcode Scanner - FIXED: Now working properly
+            document.getElementById('scan-barcode').addEventListener('click', () => {
+                document.getElementById('scanner-container').style.display = 'flex';
+                
+                // Simulate barcode scanning after a delay
+                setTimeout(() => {
+                    const barcode = simulateBarcodeScan();
+                    const product = lookupBarcode(barcode);
+                    
+                    if (product) {
+                        document.getElementById('scanner-container').style.display = 'none';
+                        document.getElementById('add-item-modal').style.display = 'flex';
+                        document.getElementById('item-name').value = product.name;
+                        document.getElementById('item-category').value = product.category;
+                        
+                        // Select the category visually
+                        document.querySelectorAll('.category-option').forEach(option => {
+                            option.classList.remove('selected');
+                            if (option.getAttribute('data-category') === product.category) {
+                                option.classList.add('selected');
+                            }
+                        });
+                        
+                        showToast(`Scanned: ${product.name}`);
+                    } else {
+                        showToast('Product not found in database');
+                        document.getElementById('scanner-container').style.display = 'none';
+                        document.getElementById('add-item-modal').style.display = 'flex';
+                        document.getElementById('item-name').value = 'Unknown Product';
+                        document.getElementById('item-category').value = 'other';
+                        document.querySelectorAll('.category-option').forEach(option => {
+                            option.classList.remove('selected');
+                            if (option.getAttribute('data-category') === 'other') {
+                                option.classList.add('selected');
+                            }
+                        });
+                    }
+                }, 2000);
+            });
+
+            // Close Scanner
+            document.getElementById('close-scanner').addEventListener('click', () => {
+                document.getElementById('scanner-container').style.display = 'none';
+            });
+
+            // Manual Entry from Scanner
+            document.getElementById('manual-entry').addEventListener('click', () => {
+                document.getElementById('scanner-container').style.display = 'none';
+                document.getElementById('add-item-modal').style.display = 'flex';
+            });
+
+            // Toggle Flash (simulated)
+            document.getElementById('toggle-flash').addEventListener('click', function() {
+                this.classList.toggle('active');
+                if (this.classList.contains('active')) {
+                    this.innerHTML = '<i class="fas fa-bolt" style="color: yellow;"></i>';
+                } else {
+                    this.innerHTML = '<i class="fas fa-bolt"></i>';
+                }
+            });
+
+            // Category Picker - NEW: Make categories clickable with custom input for "Other"
+            document.querySelectorAll('.category-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.category-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    this.classList.add('selected');
+                    
+                    const category = this.getAttribute('data-category');
+                    document.getElementById('item-category').value = category;
+                    
+                    // Show custom input for "Other" category
+                    const otherInput = document.getElementById('other-category-input');
+                    if (category === 'other') {
+                        otherInput.style.display = 'block';
+                    } else {
+                        otherInput.style.display = 'none';
+                    }
+                });
+            });
+
+            // Quantity Stepper - FIXED: Proper quantity computation
+            document.getElementById('increase-quantity').addEventListener('click', () => {
+                const valueElement = document.getElementById('quantity-value');
+                const currentValue = parseInt(valueElement.textContent);
+                valueElement.textContent = currentValue + 1;
+                document.getElementById('item-quantity').value = currentValue + 1;
+            });
+
+            document.getElementById('decrease-quantity').addEventListener('click', () => {
+                const valueElement = document.getElementById('quantity-value');
+                const currentValue = parseInt(valueElement.textContent);
+                if (currentValue > 1) {
+                    valueElement.textContent = currentValue - 1;
+                    document.getElementById('item-quantity').value = currentValue - 1;
+                }
+            });
+
+            // NEW: Dashboard card navigation
+            document.querySelector('.inventory-card').addEventListener('click', () => {
+                navigateToTab('inventory');
+            });
+
+            document.querySelector('.shopping-card').addEventListener('click', () => {
+                navigateToTab('shopping');
+            });
+
+            document.querySelector('.recipes-card').addEventListener('click', () => {
+                navigateToTab('recipes');
+            });
+
+            // Modal functionality
+            const addItemModal = document.getElementById('add-item-modal');
+            const accountModal = document.getElementById('account-modal');
+            const notificationsModal = document.getElementById('notifications-modal');
+            
+            const addManuallyBtn = document.getElementById('add-manually');
+            const closeModalBtn = document.getElementById('close-modal');
+            const cancelAddBtn = document.getElementById('cancel-add');
+            const saveItemBtn = document.getElementById('save-item');
+            
+            const closeAccountModalBtn = document.getElementById('close-account-modal');
+            const cancelAccountBtn = document.getElementById('cancel-account');
+            const saveAccountBtn = document.getElementById('save-account');
+            
+            const notificationsBtn = document.getElementById('notifications-btn');
+            const closeNotificationsModalBtn = document.getElementById('close-notifications-modal');
+            const cancelNotificationsBtn = document.getElementById('cancel-notifications');
+            const saveNotificationsBtn = document.getElementById('save-notifications');
+            
+            // Add Item Modal
+            addManuallyBtn.addEventListener('click', () => {
+                addItemModal.style.display = 'flex';
+            });
+
+            closeModalBtn.addEventListener('click', () => {
+                addItemModal.style.display = 'none';
+            });
+
+            cancelAddBtn.addEventListener('click', () => {
+                addItemModal.style.display = 'none';
+            });
+
+            saveItemBtn.addEventListener('click', async () => {
+                const name = document.getElementById('item-name').value;
+                let category = document.getElementById('item-category').value;
+                const quantity = document.getElementById('item-quantity').value;
+                const expiry = document.getElementById('item-expiry').value;
+                const notes = document.getElementById('item-notes').value;
+                
+                // NEW: Handle custom category for "Other"
+                if (category === 'other') {
+                    const customCategory = document.getElementById('other-category-text').value.trim();
+                    if (customCategory) {
+                        category = customCategory;
+                    }
+                }
+                
+                if (!name || !quantity || !expiry) {
+                    showToast('Please fill in all required fields');
+                    return;
+                }
+                
+                await addItemToInventory({ name, category, quantity, expiry, notes });
+                addItemModal.style.display = 'none';
+                
+                // Reset form
+                document.getElementById('item-name').value = '';
+                document.getElementById('item-quantity').value = '1';
+                document.getElementById('quantity-value').textContent = '1';
+                document.getElementById('item-expiry').value = '';
+                document.getElementById('item-notes').value = '';
+                document.getElementById('other-category-text').value = '';
+                
+                // Reset category to default
+                document.querySelectorAll('.category-option').forEach(option => {
+                    option.classList.remove('selected');
+                    if (option.getAttribute('data-category') === 'fruit') {
+                        option.classList.add('selected');
+                    }
+                });
+                document.getElementById('item-category').value = 'fruit';
+                document.getElementById('other-category-input').style.display = 'none';
+            });
+
+            // Account Modal
+            closeAccountModalBtn.addEventListener('click', () => {
+                accountModal.style.display = 'none';
+            });
+
+            cancelAccountBtn.addEventListener('click', () => {
+                accountModal.style.display = 'none';
+            });
+
+            saveAccountBtn.addEventListener('click', async () => {
+                userSettings.name = document.getElementById('user-name').value;
+                userSettings.email = document.getElementById('user-email').value;
+                userSettings.phone = document.getElementById('user-phone').value;
+                userSettings.lowStockAlerts = document.getElementById('low-stock-alerts').checked;
+                userSettings.expirationAlerts = document.getElementById('expiration-alerts').checked;
+                userSettings.smsNotifications = document.getElementById('sms-notifications').checked;
+                userSettings.whatsappNotifications = document.getElementById('whatsapp-notifications').checked;
+                
+                const saved = await saveUserData();
+                if (saved) {
+                    accountModal.style.display = 'none';
+                    updateDashboard();
+                    showToast('Account settings saved');
+                } else {
+                    showToast('Error saving account settings');
+                }
+            });
+
+            // Notifications Modal
+            notificationsBtn.addEventListener('click', () => {
+                // Populate form with current settings
+                document.getElementById('notif-low-stock').checked = userSettings.lowStockAlerts;
+                document.getElementById('notif-expiration').checked = userSettings.expirationAlerts;
+                document.getElementById('notif-sms').checked = userSettings.smsNotifications;
+                document.getElementById('notif-whatsapp').checked = userSettings.whatsappNotifications;
+                document.getElementById('notif-weekly').checked = userSettings.weeklySummary;
+                
+                notificationsModal.style.display = 'flex';
+            });
+
+            closeNotificationsModalBtn.addEventListener('click', () => {
+                notificationsModal.style.display = 'none';
+            });
+
+            cancelNotificationsBtn.addEventListener('click', () => {
+                notificationsModal.style.display = 'none';
+            });
+
+            saveNotificationsBtn.addEventListener('click', async () => {
+                userSettings.lowStockAlerts = document.getElementById('notif-low-stock').checked;
+                userSettings.expirationAlerts = document.getElementById('notif-expiration').checked;
+                userSettings.smsNotifications = document.getElementById('notif-sms').checked;
+                userSettings.whatsappNotifications = document.getElementById('notif-whatsapp').checked;
+                userSettings.weeklySummary = document.getElementById('notif-weekly').checked;
+                
+                const saved = await saveUserData();
+                if (saved) {
+                    notificationsModal.style.display = 'none';
+                    updateDashboard();
+                    showToast('Notification settings saved');
+                } else {
+                    showToast('Error saving notification settings');
+                }
+            });
+
+            // Test notification buttons
+            document.getElementById('test-sms').addEventListener('click', () => {
+                sendSMSNotification('Test message from Smart Grocery Manager');
+            });
+
+            document.getElementById('test-whatsapp').addEventListener('click', () => {
+                sendWhatsAppNotification('Test message from Smart Grocery Manager');
+            });
+
+            // Close modals when clicking outside
+            window.addEventListener('click', (event) => {
+                if (event.target === addItemModal) {
+                    addItemModal.style.display = 'none';
+                }
+                if (event.target === accountModal) {
+                    accountModal.style.display = 'none';
+                }
+                if (event.target === notificationsModal) {
+                    notificationsModal.style.display = 'none';
+                }
+            });
+
+            // Set default expiry date to 7 days from now
+            const expiryInput = document.getElementById('item-expiry');
+            const defaultExpiry = new Date();
+            defaultExpiry.setDate(defaultExpiry.getDate() + 7);
+            expiryInput.value = defaultExpiry.toISOString().split('T')[0];
+        }
+
+        // Initialize the app
+        setupEventListeners();
+    </script>
+</body>
+</html>
